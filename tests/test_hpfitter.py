@@ -68,9 +68,9 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Construct optimizer
         opt_kwargs=dict(local_run=run_golden,bounds=None,hptrans=True,use_bounds=True)
         local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,ngrid=ngrid,optimize=True,multiple_min=True)
-        hpfitter=HyperparameterFitterGPAtom(func=FactorizedLogLikelihood(),
-                                    optimization_method=line_search_scale,
-                                    opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        hpfitter=HyperparameterFitterGPAtom(func=FactorizedLogLikelihood(),add_noise_correction=True,
+                                            optimization_method=line_search_scale,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
         # Make fingerprints of training set
         FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
         # Define hyperparameters to optimize
@@ -82,6 +82,135 @@ class TestHpfitterGPatom(unittest.TestCase):
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.105)<1e-2)
         self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
+
+    def test_noise_correction(self):
+        " Line search with factorization method with optimization of scale, weight, and ratio, but where the noise correction is not added. "
+        # Import from gpatom
+        from gpatom.gpfp.gp import GaussianProcess
+        # Import the hpfitter
+        from hpfitter.hpfitter_gpatom import HyperparameterFitterGPAtom
+        from hpfitter.optimizers.functions import calculate_list_values
+        from hpfitter.optimizers.local_opt import run_golden
+        from hpfitter.optimizers.global_opt import line_search_scale
+        from hpfitter.objectivefunctions.factorized_likelihood import FactorizedLogLikelihood 
+        # Need another prior mean for working
+        from hpfitter.means.mean import Prior_mean 
+        # Create the data set
+        x,f,g=create_h2_atoms()
+        ## Whether to learn from the derivatives
+        use_derivatives=True
+        x_tr,f_tr,x_te,f_te=make_train_test_set(x,f,g,tr=20,te=1,use_derivatives=use_derivatives)
+        # Initial hyperparameters of the GP
+        ## Noisefactor needs to be 1.0 for the Factorization method
+        hp=dict(scale=1.0,weight=1.0,ratio=1e-3,noisefactor=1.0)
+        # Construct gp (it needs another prior mean than default)
+        gp=GaussianProcess(hp=hp,prior=Prior_mean(),kerneltype='sqexp',use_forces=True,parallelkernel=False)
+        # The cpu number to use times the number of grid points pr cpu (default is 80) 
+        ngrid=80
+        # Construct optimizer
+        opt_kwargs=dict(local_run=run_golden,bounds=None,hptrans=True,use_bounds=True)
+        local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,ngrid=ngrid,optimize=True,multiple_min=True)
+        hpfitter=HyperparameterFitterGPAtom(func=FactorizedLogLikelihood(),add_noise_correction=False,
+                                            optimization_method=line_search_scale,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        # Make fingerprints of training set
+        FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
+        # Define hyperparameters to optimize
+        hp=dict(ratio=1e-4,scale=0.5,weight=2.0)
+        # Optimize hyperparameters
+        sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
+        # Test the solution deviation
+        self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
+        self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.105)<1e-2)
+        self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
+
+    def test_prior_mean(self):
+        " Line search with factorization method with optimization of scale, weight, and ratio, but where the prior mean parameters are extracted. "
+        # Import from gpatom
+        from gpatom.gpfp.gp import GaussianProcess
+        # Import the hpfitter
+        from hpfitter.hpfitter_gpatom import HyperparameterFitterGPAtom
+        from hpfitter.optimizers.functions import calculate_list_values
+        from hpfitter.optimizers.local_opt import run_golden
+        from hpfitter.optimizers.global_opt import line_search_scale
+        from hpfitter.objectivefunctions.factorized_likelihood import FactorizedLogLikelihood 
+        # Need another prior mean for working
+        from hpfitter.means.mean import Prior_mean 
+        # Create the data set
+        x,f,g=create_h2_atoms()
+        ## Whether to learn from the derivatives
+        use_derivatives=True
+        x_tr,f_tr,x_te,f_te=make_train_test_set(x,f,g,tr=20,te=1,use_derivatives=use_derivatives)
+        # Initial hyperparameters of the GP
+        ## Noisefactor needs to be 1.0 for the Factorization method
+        hp=dict(scale=1.0,weight=1.0,ratio=1e-3,noisefactor=1.0)
+        # Construct gp (it needs another prior mean than default)
+        gp=GaussianProcess(hp=hp,prior=Prior_mean(),kerneltype='sqexp',use_forces=True,parallelkernel=False)
+        # The cpu number to use times the number of grid points pr cpu (default is 80) 
+        ngrid=80
+        # Construct optimizer
+        opt_kwargs=dict(local_run=run_golden,bounds=None,hptrans=True,use_bounds=True)
+        local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,ngrid=ngrid,optimize=True,multiple_min=True)
+        hpfitter=HyperparameterFitterGPAtom(func=FactorizedLogLikelihood(get_prior_mean=True),add_noise_correction=False,
+                                            optimization_method=line_search_scale,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        # Make fingerprints of training set
+        FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
+        # Define hyperparameters to optimize
+        hp=dict(ratio=1e-4,scale=0.5,weight=2.0)
+        # Optimize hyperparameters
+        sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
+        # Test the solution deviation
+        self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
+        self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.105)<1e-2)
+        self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
+
+    def test_pdis(self):
+        " Line search with factorization method with optimization of scale, weight, and ratio, but where the prior distributions are used for the hyperparameters. "
+        # Import from gpatom
+        from gpatom.gpfp.gp import GaussianProcess
+        # Import the hpfitter
+        from hpfitter.hpfitter_gpatom import HyperparameterFitterGPAtom
+        from hpfitter.optimizers.functions import calculate_list_values
+        from hpfitter.optimizers.local_opt import run_golden
+        from hpfitter.optimizers.global_opt import line_search_scale
+        from hpfitter.objectivefunctions.factorized_likelihood import FactorizedLogLikelihood 
+        from hpfitter.pdistributions.normal import Normal_prior
+        # Need another prior mean for working
+        from hpfitter.means.mean import Prior_mean 
+        # Create the data set
+        x,f,g=create_h2_atoms()
+        ## Whether to learn from the derivatives
+        use_derivatives=True
+        x_tr,f_tr,x_te,f_te=make_train_test_set(x,f,g,tr=20,te=1,use_derivatives=use_derivatives)
+        # Initial hyperparameters of the GP
+        ## Noisefactor needs to be 1.0 for the Factorization method
+        hp=dict(scale=1.0,weight=1.0,ratio=1e-3,noisefactor=1.0)
+        # Construct gp (it needs another prior mean than default)
+        gp=GaussianProcess(hp=hp,prior=Prior_mean(),kerneltype='sqexp',use_forces=True,parallelkernel=False)
+        # The cpu number to use times the number of grid points pr cpu (default is 80) 
+        ngrid=80
+        # Construct optimizer
+        opt_kwargs=dict(local_run=run_golden,bounds=None,hptrans=True,use_bounds=True)
+        local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,ngrid=ngrid,optimize=True,multiple_min=True)
+        hpfitter=HyperparameterFitterGPAtom(func=FactorizedLogLikelihood(),add_noise_correction=False,
+                                            optimization_method=line_search_scale,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        # Make fingerprints of training set
+        FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
+        # Define hyperparameters to optimize
+        hp=dict(ratio=1e-4,scale=0.5,weight=2.0)
+        # Make the prior distributions of the hyperparameters
+        pdis=dict(scale=Normal_prior(mu=0.0,std=1.0),ratio=Normal_prior(mu=-6.0,std=2.0))
+        # Optimize hyperparameters
+        sol=hpfitter.fit(FPs,f_tr,gp,hp=hp,pdis=pdis)
+        # Test the solution deviation
+        self.assertTrue(abs(sol['fun']-686.620)<1e-2) 
+        self.assertTrue(abs(sol['hp']['scale']-0.544)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-70.083)<1e-2)
+        self.assertTrue(abs(sol['hp']['ratio']-0.179)<1e-2)
 
     def test_line_mle(self):
         " Line search with factorization method with optimization of scale and weight. "
@@ -111,9 +240,9 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Construct optimizer
         opt_kwargs=dict(local_run=run_golden,bounds=None,hptrans=True,use_bounds=True)
         local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,ngrid=ngrid,optimize=True,multiple_min=True)
-        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),
-                                    optimization_method=line_search_scale,
-                                    opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),add_noise_correction=True,
+                                            optimization_method=line_search_scale,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
         # Make fingerprints of training set
         FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
         # Define hyperparameters to optimize (do not optimize ratio)
@@ -153,9 +282,9 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Construct optimizer
         opt_kwargs=dict(local_run=fine_grid_search,ngrid=ngrid,bounds=None,hptrans=True,use_bounds=True)
         local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,loops=5,iterloop=ngrid,optimize=True,multiple_min=True)
-        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),
-                                    optimization_method=line_search_scale,
-                                    opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),add_noise_correction=True,
+                                            optimization_method=line_search_scale,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
         # Make fingerprints of training set
         FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
         # Define hyperparameters to optimize (do not optimize ratio)
@@ -195,9 +324,9 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Construct optimizer
         opt_kwargs=dict(local_run=fine_grid_search,ngrid=ngrid,bounds=None,hptrans=True,use_bounds=True)
         local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,loops=5,iterloop=ngrid,optimize=True,multiple_min=True)
-        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),
-                                    optimization_method=line_search_scale_parallel,
-                                    opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),add_noise_correction=True,
+                                            optimization_method=line_search_scale_parallel,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
         # Make fingerprints of training set
         FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
         # Define hyperparameters to optimize (do not optimize ratio)
@@ -237,9 +366,9 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Construct optimizer
         opt_kwargs=dict(local_run=fine_grid_search,ngrid=ngrid,bounds=None,hptrans=True,use_bounds=True)
         local_kwargs=dict(fun_list=calculate_list_values,tol=1e-5,loops=5,iterloop=ngrid,optimize=True,multiple_min=False)
-        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),
-                                    optimization_method=line_search_scale_parallel,
-                                    opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        hpfitter=HyperparameterFitterGPAtom(func=MaximumLogLikelihood(),add_noise_correction=True,
+                                            optimization_method=line_search_scale_parallel,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
         # Make fingerprints of training set
         FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
         # Define hyperparameters to optimize (do not optimize ratio)
@@ -276,9 +405,9 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Construct optimizer
         opt_kwargs=dict(local_run=scipy_opt)
         local_kwargs=dict(tol=1e-12,method='L-BFGS-B')
-        hpfitter=HyperparameterFitterGPAtom(func=LogLikelihood(),
-                                    optimization_method=local_optimize,
-                                    opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
+        hpfitter=HyperparameterFitterGPAtom(func=LogLikelihood(),add_noise_correction=True,
+                                            optimization_method=local_optimize,
+                                            opt_kwargs=dict(maxiter=500,jac=False,**opt_kwargs,local_kwargs=local_kwargs))
         # Make fingerprints of training set
         FPs=get_fingerprints(x_tr,make_fp=CartesianCoordFP)
         # Define hyperparameters to optimize (do not optimize ratio)

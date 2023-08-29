@@ -3,14 +3,20 @@ from scipy.linalg import cho_solve
 from .objectivefunction_gpatom import ObjectiveFuctionGPAtom
 
 class MaximumLogLikelihood(ObjectiveFuctionGPAtom):
-    def __init__(self,modification=False,**kwargs):
+    def __init__(self,get_prior_mean=False,modification=False,**kwargs):
         """ Maximum log-likelihood objective function as a function of the hyperparameters. 
-            The prefactor hyperparameter is calculated from an analytical expression. """
-        super().__init__(**kwargs)
+            The prefactor hyperparameter is calculated from an analytical expression. 
+            Parameters:
+                get_prior_mean: bool
+                    Whether to save the parameters of the prior mean in the solution.
+                modification: bool
+                    Whether to modify the analytical prefactor value in the end.
+                    The prefactor hyperparameter becomes larger if modification=True.
+        """
+        super().__init__(get_prior_mean=get_prior_mean,**kwargs)
         self.modification=modification
     
     def function(self,theta,parameters,model,X,Y,pdis=None,jac=False,**kwargs):
-        " The objective function value. "
         hp,parameters_set=self.make_hp(theta,parameters)
         model=self.update(model,hp)
         coef,L,low,Y_p,KXX,n_data=self.coef_cholesky(model,X,Y)
@@ -38,7 +44,7 @@ class MaximumLogLikelihood(ObjectiveFuctionGPAtom):
         nlp_deriv=nlp_deriv-self.logpriors(hp,parameters_set,parameters,pdis,jac=True)
         return nlp_deriv
     
-    def update_solution(self,fun,theta,parameters,model,jac=False,get_prior=False,deriv=None,Y_p=None,coef=None,n_data=None,**kwargs):
+    def update_solution(self,fun,theta,parameters,model,jac=False,deriv=None,Y_p=None,coef=None,n_data=None,**kwargs):
         " Update the solution of the optimization in terms of hyperparameters and model. "
         if fun<self.sol['fun']:
             hp,parameters_set=self.make_hp(theta,parameters)
@@ -51,10 +57,13 @@ class MaximumLogLikelihood(ObjectiveFuctionGPAtom):
             self.sol['fun']=fun
             if jac:
                 self.sol['jac']=deriv.copy()
-            if get_prior:
+            if self.get_prior_mean:
                 self.sol['prior']=model.prior.get_parameters()
         return self.sol
     
     def copy(self):
         " Copy the objective function object. "
-        return self.__class__(modification=self.modification)
+        return self.__class__(get_prior_mean=self.get_prior_mean,modification=self.modification)
+    
+    def __repr__(self):
+        return "{}(get_prior_mean={},modification={})".format(self.__class__.__name__,self.get_prior_mean,self.modification)

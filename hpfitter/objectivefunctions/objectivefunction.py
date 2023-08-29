@@ -3,12 +3,33 @@ from scipy.linalg import cho_factor,cho_solve
 from numpy.linalg import eigh
 
 class ObjectiveFuction:
-    def __init__(self,**kwargs):
-        """ The objective function that is used to optimize the hyperparameters. """
+    def __init__(self,get_prior_mean=False,**kwargs):
+        """ The objective function that is used to optimize the hyperparameters. 
+            Parameters:
+                get_prior_mean: bool
+                    Whether to save the parameters of the prior mean in the solution.
+        """
         self.reset_solution()
+        self.get_prior_mean=get_prior_mean
 
     def function(self,theta,parameters,model,X,Y,pdis=None,jac=False,**kwargs):
-        " The function call that calculate the objective function. "
+        """ The function call that calculate the objective function. 
+            Parameters:
+                theta: (H) array of floats
+                    An array with the hyperparameter values used for the objective function.
+                parameters: (H) list of strings
+                    A list of names of the hyperparameters.
+                model: Model
+                    The Machine Learning Model with kernel and prior that are optimized.
+                X: (N,D) array
+                    Training features with N data points and D dimensions.
+                Y: (N,1) array or (N,D+1) array
+                    Training targets without or with derivatives with N data points.
+                pdis: dict
+                    A dict of prior distributions for each hyperparameter type.
+                jac: bool
+                    Whether to get the derivatives of the objective function wrt. the hyperparameters. 
+        """
         raise NotImplementedError()
     
     def derivative(self,**kwargs):
@@ -129,7 +150,7 @@ class ObjectiveFuction:
         self.sol={'fun':np.inf,'x':np.array([]),'hp':{}}
         return self
     
-    def update_solution(self,fun,theta,parameters,model,jac=False,get_prior=False,deriv=None,**kwargs):
+    def update_solution(self,fun,theta,parameters,model,jac=False,deriv=None,**kwargs):
         " Update the solution of the optimization in terms of hyperparameters and model. "
         if fun<self.sol['fun']:
             self.sol['fun']=fun
@@ -137,11 +158,11 @@ class ObjectiveFuction:
             self.sol['hp']=self.make_hp(theta,parameters)[0]
             if jac:
                 self.sol['jac']=deriv.copy()
-            if get_prior:
+            if self.get_prior_mean:
                 self.sol['prior']=model.prior.get_parameters()
         return self.sol
     
-    def get_solution(self,sol,parameters,model,X,Y,pdis=None,get_prior=False,**kwargs):
+    def get_solution(self,sol,parameters,model,X,Y,pdis=None,**kwargs):
         " Get the solution of the optimization in terms of hyperparameters and model. "
         if self.sol['fun']<=sol['fun']:
             sol['fun']=self.sol['fun']
@@ -154,10 +175,14 @@ class ObjectiveFuction:
         else:
             sol['hp']=self.make_hp(sol['x'],parameters)[0]
             # Can also give prior arguments
-            if get_prior:
+            if self.get_prior_mean:
                 sol['prior']=model.prior.get_parameters()
         return sol
     
     def copy(self):
         " Copy the objective function object. "
-        return self.__class__()
+        return self.__class__(get_prior_mean=self.get_prior_mean)
+    
+    def __repr__(self):
+        return "{}(get_prior_mean={})".format(self.__class__.__name__,self.get_prior_mean)
+    

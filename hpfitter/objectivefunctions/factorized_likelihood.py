@@ -4,13 +4,31 @@ from ..optimizers.local_opt import run_golden,fine_grid_search
 from ..optimizers.functions import make_lines
 
 class FactorizedLogLikelihood(ObjectiveFuctionGPAtom):
-    def __init__(self,modification=False,ngrid=80,bounds=None,hptrans=True,use_bounds=True,s=0.14,noise_method="finegrid",method_kwargs={},**kwargs):
+    def __init__(self,get_prior_mean=False,modification=False,ngrid=80,bounds=None,hptrans=True,use_bounds=True,s=0.14,noise_method="finegrid",method_kwargs={},**kwargs):
         """ The factorized log-likelihood objective function that is used to optimize the hyperparameters. 
             The prefactor hyperparameter is determined from an analytical expression. 
             An eigendecomposition is performed to get the eigenvalues. 
-            The noise hyperparameter can be searched from a single eigendecomposition for each length-scale hyperparameter. 
+            The relative-noise hyperparameter can be searched from a single eigendecomposition for each length-scale hyperparameter. 
+            Parameters:
+                get_prior_mean: bool
+                    Whether to save the parameters of the prior mean in the solution.
+                modification: bool
+                    Whether to modify the analytical prefactor value in the end.
+                    The prefactor hyperparameter becomes larger if modification=True.
+                ngrid: int
+                    Number of grid points that are searched in the relative-noise hyperparameter. 
+                bounds: Boundary_conditions class
+                    A class that calculates the boundary conditions of the relative-noise hyperparameter.
+                hptrans: bool
+                    Whether to use a variable transformation of the relative-noise hyperparameter.
+                use_bounds: bool
+                    Whether to use educated guesses for the boundary conditions of the relative-noise hyperparameter.
+                s: float
+                    A value used by the variable transformation that determines how much extra space than the boundary conditions are used.
+                noise_method: str or function
+                    The method used for optimizing the relative-noise hyperparameter.
         """
-        super().__init__(**kwargs)
+        super().__init__(get_prior_mean=get_prior_mean,**kwargs)
         # Modification of the prefactor hyperparameter
         self.modification=modification
         # Parameters for construction of noise grid
@@ -25,25 +43,23 @@ class FactorizedLogLikelihood(ObjectiveFuctionGPAtom):
     
     def set_noise_optimizer(self,noise_method="finegrid",method_kwargs={}):
         " Set method for finding the maximum noise hyperparameter. "
+        self.method_kwargs=dict()
         if isinstance(noise_method,str):
             noise_method=noise_method.lower()
             if noise_method=="golden":
                 self.maximize_noise=self.maximize_noise_golden
-                if len(method_kwargs.keys())==0:
-                    method_kwargs=dict(tol=1e-5,maxiter=400,optimize=True,multiple_min=False)
+                self.method_kwargs=dict(tol=1e-5,maxiter=400,optimize=True,multiple_min=False)
             elif noise_method=="finegrid":
                 self.maximize_noise=self.maximize_noise_finegrid
-                if len(method_kwargs.keys())==0:
-                    method_kwargs=dict(tol=1e-5,maxiter=400,loops=2,iterloop=80,optimize=True,multiple_min=False)
+                self.method_kwargs=dict(tol=1e-5,maxiter=400,loops=2,iterloop=80,optimize=True,multiple_min=False)
             elif noise_method=="grid":
                 self.maximize_noise=self.maximize_noise_grid
         else:
             self.maximize_noise=noise_method
-        self.method_kwargs=method_kwargs.copy()
+        self.method_kwargs.update(method_kwargs)
         return self
 
     def function(self,theta,parameters,model,X,Y,pdis=None,jac=False,**kwargs):
-        " The objective function value. "
         hp,parameters_set=self.make_hp(theta,parameters)
         model=self.update(model,hp)
         D,U,Y_p,UTY,KXX,n_data=self.get_eig(model,X,Y)
@@ -116,7 +132,7 @@ class FactorizedLogLikelihood(ObjectiveFuctionGPAtom):
         " Make the list of noises. " 
         return np.array(make_lines(['noise'],model,X,Y,bounds=self.bounds,ngrid=self.ngrid,hptrans=self.hptrans,use_bounds=self.use_bounds,ngrid_each_dim=False,s=self.s)).reshape(-1,1)
     
-    def update_solution(self,fun,theta,parameters,model,jac=False,get_prior=False,deriv=None,noise=None,UTY=None,D=None,n_data=None,**kwargs):
+    def update_solution(self,fun,theta,parameters,model,jac=False,deriv=None,noise=None,UTY=None,D=None,n_data=None,**kwargs):
         " Update the solution of the optimization in terms of hyperparameters and model. "
         if fun<self.sol['fun']:
             hp,parameters_set=self.make_hp(theta,parameters)
@@ -130,14 +146,17 @@ class FactorizedLogLikelihood(ObjectiveFuctionGPAtom):
             self.sol['fun']=fun
             if jac:
                 self.sol['jac']=deriv.copy()
-            if get_prior:
+            if self.get_prior_mean:
                 self.sol['prior']=model.prior.get_parameters()
         return self.sol
     
     def copy(self):
         " Copy the objective function object. "
-        clone=self.__class__(modification=self.modification,
+        clone=self.__class__(get_prior_mean=self.get_prior_mean,modification=self.modification,
                              ngrid=self.ngrid,bounds=self.bounds,
                              hptrans=self.hptrans,use_bounds=self.use_bounds,
                              s=self.s,noise_method=self.noise_method,method_kwargs=self.method_kwargs)
         return clone
+    
+    def __repr__(self):
+        return "{}(get_prior_mean={},modification={},ngrid={},hptrans={},use_bounds={},s={},noise_method={finegrid})".format(self.__class__.__name__,self.get_prior_mean,self.modification,self.ngrid,self.hptran,self.use_bounds,self.s,self.noise_method)

@@ -6,7 +6,6 @@ class LogLikelihood(ObjectiveFuctionGPAtom):
     """ Log-likelihood objective function as a function of the hyperparameters. """
     
     def function(self,theta,parameters,model,X,Y,pdis=None,jac=False,**kwargs):
-        " The objective function value. "
         hp,parameters_set=self.make_hp(theta,parameters)
         model=self.update(model,hp)
         coef,L,low,Y_p,KXX,n_data=self.coef_cholesky(model,X,Y)

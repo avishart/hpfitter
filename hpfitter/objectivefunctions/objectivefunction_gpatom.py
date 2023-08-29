@@ -44,10 +44,14 @@ class ObjectiveFuctionGPAtom(ObjectiveFuction):
     
     def add_correction(self,model,KXX,n_data,**kwargs):
         " Add noise correction to covariance matrix.  "
-        K_diag=np.diag(KXX)
-        corr=(np.sum(K_diag)**2)*(1.0/(1.0/(2.3e-16)-(len(K_diag)**2)))
+        corr=self.get_correction(KXX)
         KXX[range(n_data),range(n_data)]+=corr
         return KXX
+    
+    def get_correction(self,KXX,**kwargs):
+        " Get the noise correction. "
+        K_diag=np.diag(KXX)
+        return (np.sum(K_diag)**2)*(1.0/(1.0/(2.3e-16)-(len(K_diag)**2)))
     
     def kxx_reg(self,model,X,Y,**kwargs):
         " Get covariance matrix with regularization. "
