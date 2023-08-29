@@ -274,7 +274,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Construct gp (it needs another prior mean than default)
         gp=GaussianProcess(hp=hp,prior=Prior_mean(),kerneltype='sqexp',use_forces=True,parallelkernel=False)
         # Construct optimizer
-        opt_kwargs=dict(local_run=scipy_opt,bounds=None,hptrans=True,use_bounds=True)
+        opt_kwargs=dict(local_run=scipy_opt)
         local_kwargs=dict(tol=1e-12,method='L-BFGS-B')
         hpfitter=HyperparameterFitterGPAtom(func=LogLikelihood(),
                                     optimization_method=local_optimize,

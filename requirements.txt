@@ -1,0 +1,9 @@
+name: casper_180823
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - mpi4py
+  - ase
+  - ipykernel
+prefix: /Users/alyvi/anaconda3/envs/casper_180823
