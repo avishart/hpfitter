@@ -8,11 +8,10 @@ class ObjectiveFuctionGPAtom(ObjectiveFuction):
     def convert_hp_to_gpatom(self,hp,model):
         " Convert the hyperparameters from here to the form of GP-atom. "
         parameters=list(hp.keys())
-        hp_new={}
+        hp_new={'weight':1.0}
         if 'length' in parameters:
             hp_new['scale']=np.array(np.exp(hp['length'])).reshape(-1)
         if 'prefactor' in parameters:
-            hp_new['weight']=1.0
             # Prefactor is needed for likelihood function evaluations
             hp_new['prefactor']=np.array(hp['prefactor']).reshape(-1)
         else:

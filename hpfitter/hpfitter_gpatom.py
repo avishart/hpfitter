@@ -60,6 +60,7 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         sol['full hp'].update(sol['hp'])
         if 'prefactor' in sol['full hp'].keys():
             sol['full hp'].pop('prefactor')
+        sol['full hp']['noise']=sol['full hp']['weight']*sol['full hp']['ratio']
         return sol
 
     def copy_model(self,model):
