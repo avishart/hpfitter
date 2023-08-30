@@ -123,7 +123,8 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         " Get the noise correction. "
         self.corr=0.0
         if self.add_noise_correction:
-            KXX=model.kernel.kernel_matrix(X)
+            weight2=model.hp['weight']**2
+            KXX=model.kernel.kernel_matrix(X)/weight2
             self.corr=np.sqrt(self.func.get_correction(KXX))
         return self.corr
     
