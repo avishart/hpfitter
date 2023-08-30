@@ -96,7 +96,7 @@ class Boundary_conditions:
             if len(dis)==0:
                 dis=[1.0]
             dis_min,dis_max=np.nanmedian(self.nearest_neighbors(dis))*exp_lower,np.nanmax(dis)*exp_max
-            if model.use_derivatives:
+            if model.use_forces:
                 dis_min=dis_min*0.05
             lengths.append([dis_min/scale,dis_max*scale])
         return np.array(lengths)
