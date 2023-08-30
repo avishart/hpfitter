@@ -62,11 +62,11 @@ class Boundary_conditions:
             if para=='length':
                 bounds[para]=self.length_bound(X,Y,model,scale=self.scale)
             elif para=='noise':
-                if 'noise_deriv' in parameters and model.use_derivatives:
+                if 'noise_deriv' in parameters and model.use_forces:
                     bounds[para]=self.noise_bound(X,Y[:,0:1],scale=self.scale)
                 else:
                     bounds[para]=self.noise_bound(X,Y,scale=self.scale)
-            elif para=='noise_deriv' and model.use_derivatives:
+            elif para=='noise_deriv' and model.use_forces:
                 bounds[para]=self.noise_bound(X,Y[:,1:],scale=self.scale)
             elif para=='prefactor':
                 bounds[para]=self.prefactor_bound(X,Y,model,scale=self.scale)
