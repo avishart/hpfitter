@@ -80,10 +80,10 @@ class Boundary_conditions:
         if not self.max_length:
             exp_max=2.0
         lengths=[]
-        if isinstance(self.kernel.kerneltype.params['scale'],float):
+        if isinstance(model.kernel.kerneltype.params['scale'],float):
             l_dim=1
         else:
-            l_dim=len(self.kernel.kerneltype.params['scale'])
+            l_dim=len(model.kernel.kerneltype.params['scale'])
         if not isinstance(X[0],(list,np.ndarray)):
             X=np.array([fp.get_vector() for fp in X])
         for d in range(l_dim):
