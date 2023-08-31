@@ -85,7 +85,7 @@ class Boundary_conditions:
         else:
             l_dim=len(model.kernel.kerneltype.params['scale'])
         if not isinstance(X[0],(list,np.ndarray)):
-            X=np.array([fp.get_vector() for fp in X])
+            X=np.array([fp.vector.copy() for fp in X])
         for d in range(l_dim):
             if l_dim==1:
                 dis=pdist(X)

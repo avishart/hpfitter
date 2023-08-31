@@ -37,19 +37,17 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         """
         if hp is None:
             hp=model.hp.copy()
-        self.get_noise_correction(X,model,**kwargs)
+        model=self.copy_model(model,hp,X)
         theta,parameters=self.hp_to_theta(hp)
-        model=self.copy_model(model)
         pdis_new=self.convert_pdis_to_gpatom(pdis)
         self.func.reset_solution()
         sol=self.optimization_method(self.func,theta,parameters,model,X,Y,pdis=pdis_new,**self.opt_kwargs)
         if 'hp' in sol.keys():
-            self.get_noise_correction(X,model,**kwargs)
-            sol['hp']=self.convert_hp_to_gpatom(sol['hp'],model)
+            sol['hp']=self.convert_hp_to_gpatom(sol['hp'],model,X)
         sol=self.get_full_hp(sol,model)
         return sol
     
-    def hp_to_theta(self,hp):
+    def hp_to_theta(self,hp,**kwargs):
         " Transform a dictionary of hyperparameters to a list of values and a list of parameter categories " 
         hp_new=self.convert_hp_from_gpatom(hp)
         return super().hp_to_theta(hp_new)
@@ -63,18 +61,19 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         sol['full hp']['noise']=sol['full hp']['weight']*sol['full hp']['ratio']
         return sol
 
-    def copy_model(self,model):
+    def copy_model(self,model,hp,X,**kwargs):
         " Copy the model and check if the noisefactor is used in the factorization method"
         model=deepcopy(model)
+        model.set_hyperparams(hp)
         if 'noisefactor' in model.hp.keys():
             from .objectivefunctions.factorized_likelihood import FactorizedLogLikelihood
             if isinstance(self.func,FactorizedLogLikelihood):
                 if model.hp['noisefactor']!=1.0:
-                    print('Noisefactor must be 1.0 for the Factorization method')
-                    model.hp['noisefactor']=1.0
+                    raise Exception('Noisefactor must be 1.0 for the Factorization method') 
+        self.get_noise_correction(model,X)
         return model
     
-    def convert_hp_from_gpatom(self,hp):
+    def convert_hp_from_gpatom(self,hp,**kwargs):
         " Convert the hyperparameters from GP-atom to the form here. "
         parameters=list(hp.keys())
         hp_new={}
@@ -84,13 +83,15 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
             hp_new['prefactor']=np.array(np.log(hp['weight'])).reshape(-1)
         if 'ratio' in parameters:
             ratio=hp['ratio']-self.corr
+            if self.corr>hp['ratio']:
+                raise Exception('Noise ratio is smaller than the noise correction!')
             if 'noisefactor' in parameters:
                 hp_new['noise']=np.array(np.log(ratio*hp['noisefactor'])).reshape(-1)
             else:
                 hp_new['noise']=np.array(np.log(ratio)).reshape(-1)
         return hp_new
     
-    def convert_hp_to_gpatom(self,hp,model):
+    def convert_hp_to_gpatom(self,hp,model,X,**kwargs):
         " Convert the hyperparameters from here to the form of GP-atom. "
         parameters=list(hp.keys())
         hp_new={}
@@ -99,6 +100,8 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'prefactor' in parameters:
             hp_new['weight']=np.exp(hp['prefactor'][0])
         if 'noise' in parameters:
+            model.set_hyperparams(hp_new)
+            self.get_noise_correction(model,X)
             ratio=np.exp(hp['noise'][0])+self.corr
             if 'noisefactor' in model.hp.keys():
                 hp_new['ratio']=ratio/model.hp['noisefactor']
@@ -119,7 +122,7 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
             pdis_new['noise']=pdis['ratio'].copy()
         return pdis_new
     
-    def get_noise_correction(self,X,model,**kwargs):
+    def get_noise_correction(self,model,X,**kwargs):
         " Get the noise correction. "
         self.corr=0.0
         if self.add_noise_correction:
@@ -127,6 +130,7 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
             KXX=model.kernel.kernel_matrix(X)/weight2
             self.corr=np.sqrt(self.func.get_correction(KXX))
         return self.corr
+    
     
     def __repr__(self):
         return "HyperparameterFitterGPAtom(func={},optimization_method={},opt_kwargs={})".format(self.func.__class__.__name__,self.optimization_method.__name__,self.opt_kwargs)
