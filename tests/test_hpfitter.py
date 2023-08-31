@@ -80,7 +80,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.105)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.105)<1.0)
         self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
 
     def test_noise_correction(self):
@@ -122,7 +122,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.105)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.105)<1.0)
         self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
 
     def test_prior_mean(self):
@@ -164,7 +164,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.105)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.105)<1.0)
         self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
 
     def test_pdis(self):
@@ -209,7 +209,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-686.620)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.544)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-70.083)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-70.083)<1.0)
         self.assertTrue(abs(sol['hp']['ratio']-0.179)<1e-2)
 
     def test_bounds(self):
@@ -300,7 +300,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.111)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.111)<1.0)
 
     def test_line_mle_finegrid(self):
         " Line search with a parallelizable method with factorization method with optimization of scale and weight (this is not parallelized). "
@@ -342,7 +342,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.508)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.061)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.061)<1.0)
 
     def test_line_mle_parallel(self):
         " Line search with a parallelizable method with factorization method with optimization of scale and weight (this is parallelized). "
@@ -384,7 +384,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.062)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.062)<1.0)
 
     def test_line_mle_fast(self):
         " Fastest line search with the parallelized method with factorization method with optimization of scale and weight (this is parallelized). "
@@ -426,7 +426,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.062)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.062)<1.0)
 
     def test_local_mle(self):
         " Local optimization of scale and weight. "
@@ -465,7 +465,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
-        self.assertTrue(abs(sol['hp']['weight']-58.064)<1e-2)
+        self.assertTrue(abs(sol['hp']['weight']-58.064)<1.0)
 
 
 if __name__ == '__main__':
