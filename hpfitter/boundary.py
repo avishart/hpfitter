@@ -80,7 +80,7 @@ class Boundary_conditions:
         if not self.max_length:
             exp_max=2.0
         lengths=[]
-        if isinstance(model.kernel.kerneltype.params['scale'],float):
+        if isinstance(model.kernel.kerneltype.params['scale'],(float,int)):
             l_dim=1
         else:
             l_dim=len(model.kernel.kerneltype.params['scale'])

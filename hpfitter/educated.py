@@ -97,7 +97,7 @@ class Educated_guess:
     def length_mean(self,X,Y):
         "The best educated guess for the length scale by using nearst neighbor"
         lengths=[]
-        if isinstance(self.kernel.kerneltype.params['scale'],float):
+        if isinstance(self.kernel.kerneltype.params['scale'],(float,int)):
             l_dim=1
         else:
             l_dim=len(self.kernel.kerneltype.params['scale'])
@@ -120,7 +120,7 @@ class Educated_guess:
     def length_bound(self,X,Y,scale=1):
         "Get the minimum and maximum ranges of the length scale in the educated guess regime within a scale"
         lengths=[]
-        if isinstance(self.kernel.kerneltype.params['scale'],float):
+        if isinstance(self.kernel.kerneltype.params['scale'],(float,int)):
             l_dim=1
         else:
             l_dim=len(self.kernel.kerneltype.params['scale'])
