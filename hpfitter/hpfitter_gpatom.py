@@ -70,7 +70,6 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
             if isinstance(self.func,FactorizedLogLikelihood):
                 if model.hp['noisefactor']!=1.0:
                     raise Exception('Noisefactor must be 1.0 for the Factorization method') 
-        self.get_noise_correction(model,X)
         return model
     
     def convert_hp_from_gpatom(self,hp,**kwargs):
@@ -82,16 +81,10 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'weight' in parameters:
             hp_new['prefactor']=np.array(np.log(hp['weight'])).reshape(-1)
         if 'ratio' in parameters:
-            if self.corr>=hp['ratio']:
-                import warnings
-                warnings.warn('Noise ratio is smaller than the noise correction! \nNoise ratio is {:.3e} and noise correction is {:.3e}. \nNoise ratio will be unchanged.'.format(hp['ratio'],self.corr))
-                ratio=hp['ratio']
-            else:
-                ratio=hp['ratio']-self.corr
             if 'noisefactor' in parameters:
-                hp_new['noise']=np.array(np.log(ratio*hp['noisefactor'])).reshape(-1)
+                hp_new['noise']=np.array(np.log(hp['ratio']*hp['noisefactor'])).reshape(-1)
             else:
-                hp_new['noise']=np.array(np.log(ratio)).reshape(-1)
+                hp_new['noise']=np.array(np.log(hp['ratio'])).reshape(-1)
         return hp_new
     
     def convert_hp_to_gpatom(self,hp,model,X,**kwargs):
@@ -103,13 +96,10 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'prefactor' in parameters:
             hp_new['weight']=np.exp(hp['prefactor'][0])
         if 'noise' in parameters:
-            model.set_hyperparams(hp_new)
-            self.get_noise_correction(model,X)
-            ratio=np.exp(hp['noise'][0])+self.corr
             if 'noisefactor' in model.hp.keys():
-                hp_new['ratio']=ratio/model.hp['noisefactor']
+                hp_new['ratio']=np.exp(hp['noise'][0])/model.hp['noisefactor']
             else:
-                hp_new['ratio']=ratio
+                hp_new['ratio']=np.exp(hp['noise'][0])
         return hp_new
     
     def convert_pdis_to_gpatom(self,pdis,**kwargs):
@@ -124,16 +114,6 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'ratio' in pdis:
             pdis_new['noise']=pdis['ratio'].copy()
         return pdis_new
-    
-    def get_noise_correction(self,model,X,**kwargs):
-        " Get the noise correction. "
-        self.corr=0.0
-        if self.add_noise_correction:
-            weight2=model.hp['weight']**2
-            KXX=model.kernel.kernel_matrix(X)/weight2
-            self.corr=np.sqrt(self.func.get_correction(KXX))
-        return self.corr
-    
     
     def __repr__(self):
         return "HyperparameterFitterGPAtom(func={},optimization_method={},opt_kwargs={})".format(self.func.__class__.__name__,self.optimization_method.__name__,self.opt_kwargs)

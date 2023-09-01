@@ -66,8 +66,8 @@ class ObjectiveFuction:
     
     def add_correction(self,model,KXX,n_data,**kwargs):
         " Add noise correction to covariance matrix. "
-        if model.correction:
-            corr=model.get_correction(np.diag(KXX))
+        corr=model.get_correction(np.diag(KXX))
+        if corr>0.0:
             KXX[range(n_data),range(n_data)]+=corr
         return KXX
         
