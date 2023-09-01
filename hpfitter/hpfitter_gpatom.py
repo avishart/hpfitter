@@ -82,9 +82,12 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'weight' in parameters:
             hp_new['prefactor']=np.array(np.log(hp['weight'])).reshape(-1)
         if 'ratio' in parameters:
-            ratio=hp['ratio']-self.corr
-            if self.corr>hp['ratio']:
-                raise Exception('Noise ratio is smaller than the noise correction!')
+            if self.corr>=hp['ratio']:
+                import warnings
+                warnings.warn('Noise ratio is smaller than the noise correction! \nNoise ratio is {:.3e} and noise correction is {:.3e}. \nNoise ratio will be unchanged.'.format(hp['ratio'],self.corr))
+                ratio=hp['ratio']
+            else:
+                ratio=hp['ratio']-self.corr
             if 'noisefactor' in parameters:
                 hp_new['noise']=np.array(np.log(ratio*hp['noisefactor'])).reshape(-1)
             else:
