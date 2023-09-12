@@ -352,7 +352,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         from hpfitter.hpfitter_gpatom import HyperparameterFitterGPAtom
         from hpfitter.optimizers.functions import calculate_list_values
         from hpfitter.optimizers.local_opt import fine_grid_search
-        from hpfitter.optimizers.mpi_global_opt import line_search_scale_parallel
+        from hpfitter.optimizers.parallel_global_opt import line_search_scale_parallel
         from hpfitter.objectivefunctions.mle import MaximumLogLikelihood 
         # Need another prior mean for working
         from hpfitter.means.mean import Prior_mean 
@@ -394,7 +394,7 @@ class TestHpfitterGPatom(unittest.TestCase):
         from hpfitter.hpfitter_gpatom import HyperparameterFitterGPAtom
         from hpfitter.optimizers.functions import calculate_list_values
         from hpfitter.optimizers.local_opt import fine_grid_search
-        from hpfitter.optimizers.mpi_global_opt import line_search_scale_parallel
+        from hpfitter.optimizers.parallel_global_opt import line_search_scale_parallel
         from hpfitter.objectivefunctions.mle import MaximumLogLikelihood 
         # Need another prior mean for working
         from hpfitter.means.mean import Prior_mean 
