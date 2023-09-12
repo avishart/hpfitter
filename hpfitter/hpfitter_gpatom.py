@@ -62,7 +62,7 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         return sol
 
     def copy_model(self,model,hp,X,**kwargs):
-        " Copy the model and check if the noisefactor is used in the factorization method"
+        " Copy the model and check if the noisefactor is not used in the factorization method. "
         model=deepcopy(model)
         model.set_hyperparams(hp)
         if 'noisefactor' in model.hp.keys():
@@ -81,10 +81,7 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'weight' in parameters:
             hp_new['prefactor']=np.array(np.log(hp['weight'])).reshape(-1)
         if 'ratio' in parameters:
-            if 'noisefactor' in parameters:
-                hp_new['noise']=np.array(np.log(hp['ratio']*hp['noisefactor'])).reshape(-1)
-            else:
-                hp_new['noise']=np.array(np.log(hp['ratio'])).reshape(-1)
+            hp_new['noise']=np.array(np.log(hp['ratio'])).reshape(-1)
         return hp_new
     
     def convert_hp_to_gpatom(self,hp,model,X,**kwargs):
@@ -96,10 +93,7 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'prefactor' in parameters:
             hp_new['weight']=np.exp(hp['prefactor'][0])
         if 'noise' in parameters:
-            if 'noisefactor' in model.hp.keys():
-                hp_new['ratio']=np.exp(hp['noise'][0])/model.hp['noisefactor']
-            else:
-                hp_new['ratio']=np.exp(hp['noise'][0])
+            hp_new['ratio']=np.exp(hp['noise'][0])
         return hp_new
     
     def convert_pdis_to_gpatom(self,pdis,**kwargs):

@@ -16,10 +16,7 @@ class ObjectiveFuctionGPAtom(ObjectiveFuction):
         else:
             hp_new['prefactor']=np.array(np.log(model.hp['weight'])).reshape(-1)
         if 'noise' in parameters:
-            if 'noisefactor' in model.hp.keys():
-                hp_new['ratio']=np.exp(hp['noise'][0])/(model.hp['noisefactor'])
-            else:
-                hp_new['ratio']=np.exp(hp['noise'])[0]
+            hp_new['ratio']=np.exp(hp['noise'])[0]
         return hp_new
     
     def get_hyperparams(self,model,**kwargs):
