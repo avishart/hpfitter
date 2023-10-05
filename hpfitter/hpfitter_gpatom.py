@@ -5,7 +5,7 @@ from .hpfitter import HyperparameterFitter
 
 class HyperparameterFitterGPAtom(HyperparameterFitter):
 
-    def __init__(self,func,optimization_method=None,opt_kwargs={},add_noise_correction=True,**kwargs):
+    def __init__(self,func,optimization_method=None,opt_kwargs={},**kwargs):
         """ A wrapper for hyperparameter fitter object, so it can be used with ase-GPatom. 
             The hyperparameter fitter object with local and global optimization methods for optimizing the hyperparameters on different objective functions. 
             Parameters:
@@ -15,11 +15,8 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
                     A function with the optimization method used.
                 opt_kwargs : dict 
                     A dictionary with the arguments for the optimization method.
-                add_noise_correction : bool
-                    Add the noise correction to ratio.
         """
         super().__init__(func=func,optimization_method=optimization_method,opt_kwargs=opt_kwargs)
-        self.add_noise_correction=add_noise_correction
         
     def fit(self,X,Y,model,hp=None,pdis=None,**kwargs):
         """ Optimize the hyperparameters 

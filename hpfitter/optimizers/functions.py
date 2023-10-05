@@ -40,57 +40,10 @@ def make_grid(lines,maxiter=5000):
         X=np.unique(X,axis=0)
     return X[:maxiter]
 
-def make_lines(parameters,model,X,Y,bounds=None,ngrid=80,hptrans=True,use_bounds=True,ngrid_each_dim=False,s=0.14):
-    " Make grid in each dimension of the hyperparameters from variable transformation, estimated boundary conditions, or a given boundary conditions. "
-    if not ngrid_each_dim:
-        ngrid=[ngrid]*len(parameters)
-    if bounds is None:
-        if hptrans:
-            from ..hptrans import Variable_Transformation
-            hyper_var=Variable_Transformation().transf_para(parameters,model,X,Y,use_bounds=use_bounds,s=s)
-            dl=np.finfo(float).eps
-            lines=[np.linspace(0.0+dl,1.0-dl,ngrid[p]) for p in range(len(parameters))]
-            lines=hyper_var.t_to_theta_lines(lines,parameters)
-        else:
-            from ..boundary import Boundary_conditions
-            if use_bounds:
-                bounds=Boundary_conditions(bound_type='educated',scale=1,max_length=True).create(model,X,Y,parameters,log=True)
-            else:
-                bounds=Boundary_conditions(bound_type='no',scale=1,max_length=True).create(model,X,Y,parameters,log=True)
-            bounds=np.concatenate([bounds[para] for para in sorted(set(parameters))],axis=0)
-            lines=[np.linspace(bound[0],bound[1],ngrid[b]) for b,bound in enumerate(bounds)]
-    else:
-        lines=[np.linspace(bounds[p][0],bounds[p][1],ngrid[p]) for p in range(len(parameters))]
-    return lines
-
-def sample_thetas(parameters,model,X,Y,bounds=None,npoints=80,hptrans=True,use_bounds=True,s=0.14):
-    " Sample npoints of hyperparameter sets from variable transformation, estimated boundary conditions, or a given boundary conditions. "
-    if bounds is None:
-        if hptrans:
-            from ..hptrans import Variable_Transformation
-            hyper_var=Variable_Transformation().transf_para(parameters,model,X,Y,use_bounds=use_bounds,s=s)
-            thetas=[]
-            for n in range(npoints-1):
-                t={para:np.array([np.random.uniform(0.0,1.0)]) for para in parameters}
-                hp_t=hyper_var.transform_t_to_theta(t)
-                thetas.append(hp_to_theta(hp_t)[0])
-            thetas=np.array(thetas)
-        else:
-            from ..boundary import Boundary_conditions
-            if use_bounds:
-                bounds=Boundary_conditions(bound_type='educated',scale=1,max_length=True).create(model,X,Y,parameters,log=True)
-            else:
-                bounds=Boundary_conditions(bound_type='no',scale=1,max_length=True).create(model,X,Y,parameters,log=True)
-            bounds=np.concatenate([bounds[para] for para in sorted(set(parameters))],axis=0)
-            thetas=np.random.uniform(low=bounds[:,0],high=bounds[:,1],size=(int(npoints-1),len(parameters)))
-    else:
-        thetas=np.random.uniform(low=bounds[:,0],high=bounds[:,1],size=(int(npoints-1),len(parameters)))
-    return thetas
-
 def anneal_var_trans(x,fun,hyper_var,parameters,model,X,Y,pdis=None,jac=False):
     " Object function called for simulated annealing, where hyperparameter transformation. "
-    x=np.where(np.where(0.0<x,x,1e-9)<1.0,x,1.00-1e-9)
-    theta=hp_to_theta(hyper_var.transform_t_to_theta(theta_to_hp(x,parameters)))[0]
+    x=np.where(x<1.0,np.where(x>0.0,x,hyper_var.eps),1.00-hyper_var.eps)
+    theta=hyper_var.reverse_trasformation(theta_to_hp(x,parameters),array=True)
     return fun.function(theta,parameters,model,X,Y,pdis,jac)
 
 def calculate_list_values(line,fun,*args,**kwargs):

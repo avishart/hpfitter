@@ -3,7 +3,12 @@ from scipy.linalg import cho_solve
 from .objectivefunction_gpatom import ObjectiveFuctionGPAtom
 
 class LogLikelihood(ObjectiveFuctionGPAtom):
-    """ Log-likelihood objective function as a function of the hyperparameters. """
+    """ 
+    The log-likelihood objective function that is used to optimize the hyperparameters. 
+    Parameters:
+        get_prior_mean: bool
+            Whether to save the parameters of the prior mean in the solution.
+    """
     
     def function(self,theta,parameters,model,X,Y,pdis=None,jac=False,**kwargs):
         hp,parameters_set=self.make_hp(theta,parameters)
@@ -18,7 +23,6 @@ class LogLikelihood(ObjectiveFuctionGPAtom):
         return nlp
     
     def derivative(self,hp,parameters_set,parameters,model,X,Y_p,KXX,L,low,coef,prefactor2,n_data,pdis,**kwargs):
-        " The derivative of the objective function wrt. the hyperparameters. "
         nlp_deriv=np.array([])
         KXX_inv=cho_solve((L,low),np.identity(n_data),check_finite=False)
         for para in parameters_set:
@@ -30,4 +34,3 @@ class LogLikelihood(ObjectiveFuctionGPAtom):
             nlp_deriv=np.append(nlp_deriv,-0.5*prefactor2*np.matmul(coef.T,np.matmul(K_deriv,coef)).reshape(-1)+0.5*K_deriv_cho)
         nlp_deriv=nlp_deriv-self.logpriors(hp,parameters_set,parameters,pdis,jac=True)
         return nlp_deriv
-

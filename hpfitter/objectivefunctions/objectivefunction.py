@@ -4,31 +4,37 @@ from numpy.linalg import eigh
 
 class ObjectiveFuction:
     def __init__(self,get_prior_mean=False,**kwargs):
-        """ The objective function that is used to optimize the hyperparameters. 
-            Parameters:
-                get_prior_mean: bool
-                    Whether to save the parameters of the prior mean in the solution.
+        """ 
+        The objective function that is used to optimize the hyperparameters. 
+        Parameters:
+            get_prior_mean: bool
+                Whether to save the parameters of the prior mean in the solution.
         """
         self.reset_solution()
         self.get_prior_mean=get_prior_mean
 
     def function(self,theta,parameters,model,X,Y,pdis=None,jac=False,**kwargs):
-        """ The function call that calculate the objective function. 
-            Parameters:
-                theta: (H) array of floats
-                    An array with the hyperparameter values used for the objective function.
-                parameters: (H) list of strings
-                    A list of names of the hyperparameters.
-                model: Model
-                    The Machine Learning Model with kernel and prior that are optimized.
-                X: (N,D) array
-                    Training features with N data points and D dimensions.
-                Y: (N,1) array or (N,D+1) array
-                    Training targets without or with derivatives with N data points.
-                pdis: dict
-                    A dict of prior distributions for each hyperparameter type.
-                jac: bool
-                    Whether to get the derivatives of the objective function wrt. the hyperparameters. 
+        """ 
+        The function call that calculate the objective function. 
+        Parameters:
+            theta: (H) array of floats
+                An array with the hyperparameter values used for the objective function.
+            parameters: (H) list of strings
+                A list of names of the hyperparameters.
+            model: Model
+                The Machine Learning Model with kernel and prior that are optimized.
+            X: (N,D) array
+                Training features with N data points and D dimensions.
+            Y: (N,1) array or (N,D+1) array
+                Training targets without or with derivatives with N data points.
+            pdis: dict
+                A dict of prior distributions for each hyperparameter type.
+            jac: bool
+                Whether to get the derivatives of the objective function wrt. the hyperparameters. 
+        Returns:
+            float: The objective function value.
+            and/or
+            (H) array: The derivative of the objective function value wrt. the hyperparameters if jac=True.
         """
         raise NotImplementedError()
     
@@ -151,7 +157,11 @@ class ObjectiveFuction:
         return self
     
     def update_solution(self,fun,theta,parameters,model,jac=False,deriv=None,**kwargs):
-        " Update the solution of the optimization in terms of hyperparameters and model. "
+        """
+        Update the solution of the optimization in terms of hyperparameters and model.
+        The lowest objective function value is stored togeher with its hyperparameters.
+        The prior mean can also be saved if get_prior_mean=True.
+        """
         if fun<self.sol['fun']:
             self.sol['fun']=fun
             self.sol['x']=theta.copy()

@@ -4,14 +4,15 @@ from .objectivefunction_gpatom import ObjectiveFuctionGPAtom
 
 class MaximumLogLikelihood(ObjectiveFuctionGPAtom):
     def __init__(self,get_prior_mean=False,modification=False,**kwargs):
-        """ Maximum log-likelihood objective function as a function of the hyperparameters. 
-            The prefactor hyperparameter is calculated from an analytical expression. 
-            Parameters:
-                get_prior_mean: bool
-                    Whether to save the parameters of the prior mean in the solution.
-                modification: bool
-                    Whether to modify the analytical prefactor value in the end.
-                    The prefactor hyperparameter becomes larger if modification=True.
+        """ 
+        The Maximum log-likelihood objective function as a function of the hyperparameters. 
+        The prefactor hyperparameter is calculated from an analytical expression. 
+        Parameters:
+            get_prior_mean: bool
+                Whether to save the parameters of the prior mean in the solution.
+            modification: bool
+                Whether to modify the analytical prefactor value in the end.
+                The prefactor hyperparameter becomes larger if modification=True.
         """
         super().__init__(get_prior_mean=get_prior_mean,**kwargs)
         self.modification=modification
@@ -31,7 +32,6 @@ class MaximumLogLikelihood(ObjectiveFuctionGPAtom):
         return nlp
     
     def derivative(self,hp,parameters_set,parameters,model,X,KXX,L,low,coef,prefactor2,n_data,pdis,**kwargs):
-        " The derivative of the objective function wrt. the hyperparameters. "
         nlp_deriv=np.array([])
         KXX_inv=cho_solve((L,low),np.identity(n_data),check_finite=False)
         for para in parameters_set:
@@ -45,7 +45,13 @@ class MaximumLogLikelihood(ObjectiveFuctionGPAtom):
         return nlp_deriv
     
     def update_solution(self,fun,theta,parameters,model,jac=False,deriv=None,Y_p=None,coef=None,n_data=None,**kwargs):
-        " Update the solution of the optimization in terms of hyperparameters and model. "
+        """
+        Update the solution of the optimization in terms of hyperparameters and model.
+        The lowest objective function value is stored togeher with its hyperparameters.
+        The prior mean can also be saved if get_prior_mean=True.
+        The prefactor hyperparameter are stored as a different value
+        than the input since it is optimized analytically.
+        """
         if fun<self.sol['fun']:
             hp,parameters_set=self.make_hp(theta,parameters)
             prefactor2=np.matmul(Y_p.T,coef).item(0)/n_data
@@ -62,7 +68,6 @@ class MaximumLogLikelihood(ObjectiveFuctionGPAtom):
         return self.sol
     
     def copy(self):
-        " Copy the objective function object. "
         return self.__class__(get_prior_mean=self.get_prior_mean,modification=self.modification)
     
     def __repr__(self):
