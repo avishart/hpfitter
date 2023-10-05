@@ -11,12 +11,13 @@ def calculate_list_values_parallelize(line,fun,*args,**kwargs):
     f_list=np.array([fun(theta,*args) for t,theta in enumerate(line) if rank==t%size])
     return np.array([broadcast(f_list,root=r) for r in range(size)]).T.reshape(-1)
 
-def get_solution_parallelized(sol,fun,parameters,model,X,Y,pdis,world,size,**kwargs):
+def get_solution_parallelized(sol,fun,parameters,model,X,Y,pdis,size,**kwargs):
     " Get all solutions from each function at each rank. "
+    fun_sol=fun.get_solution({'fun':np.inf,'x':np.array([])},parameters,model,X,Y,pdis)
     sol=fun.get_solution(sol,parameters,model,X,Y,pdis)
-    sols=[broadcast(sol,root=r) for r in range(size)]
-    i_min=np.argmin([sols[r]['fun'] for r in range(size)])
-    return sols[i_min]
+    fun_sols=[broadcast(fun_sol['fun'],root=r) for r in range(size)]
+    rank_min=np.argmin(fun_sols)
+    return broadcast(sol,root=rank_min)
 
 def local_optimize_parallel(fun,thetas,parameters,model,X,Y,pdis,local_run=scipy_opt,maxiter=5000,jac=True,local_kwargs={},**global_kwargs):
     " Local optimization of the hyperparameters in parallel. "
