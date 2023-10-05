@@ -7,15 +7,15 @@ class RestrictedBoundaries(LengthBoundaries):
         Boundary conditions for the hyperparameters with educated guess for the length-scale and relative-noise hyperparameters.
         Machine precisions are used as default boundary conditions for the rest of the hyperparameters not given in the dictionary.
         Parameters:
-            bounds_dict: dict
+            bounds_dict : dict
                 A dictionary with boundary conditions as numpy (H,2) arrays with two columns for each type of hyperparameter.
-            scale: float
+            scale : float
                 Scale the boundary conditions.
-            log: bool
+            log : bool
                 Whether to use hyperparameters in log-scale or not.
-            max_length: bool
+            max_length : bool
                 Whether to use the maximum scaling for the length-scale or use a more reasonable scaling.
-            use_derivatives: bool
+            use_derivatives : bool
                 Whether the derivatives of the target are used in the model. 
                 The boundary conditions of the length-scale hyperparameter(s) will change with the use_derivatives. 
                 The use_derivatives will be updated when update_bounds is called.
@@ -40,7 +40,7 @@ class RestrictedBoundaries(LengthBoundaries):
             elif para in self.bounds_dict:
                 bounds[para]=self.bounds_dict[para].copy()
             else:
-                bounds[para]=np.array([[eps_lower,eps_upper]]*parameters.count(para))
+                bounds[para]=np.full((parameters.count(para),2),[eps_lower,eps_upper])
         return bounds
     
     def noise_bound(self,Y,eps_lower=10*np.sqrt(2.0*np.finfo(float).eps),**kwargs):
@@ -49,11 +49,3 @@ class RestrictedBoundaries(LengthBoundaries):
         if self.log:
             return np.array([[eps_lower,np.log(n_max)]])
         return np.array([[eps_lower,n_max]])
-    
-    def copy(self):
-        " Copy the object. "
-        return self.__class__(bounds_dict=self.bounds_dict,scale=self.scale,log=self.log,max_length=self.max_length,use_derivatives=self.use_derivatives)
-    
-    def __repr__(self):
-        return "RestrictedBoundaries(bounds_dict={},scale={},log={},max_length={},use_derivatives={})".format(self.bounds_dict,self.scale,self.log,self.max_length,self.use_derivatives)
-        

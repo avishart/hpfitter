@@ -15,7 +15,7 @@ class Invgamma_prior(Prior_distribution):
             b: float or (H) array
                 The scale parameter.
         """
-        self.update(a=a,b=b)
+        self.update_arguments(a=a,b=b,**kwargs)
     
     def ln_pdf(self,x):
         if self.nosum:
@@ -25,7 +25,19 @@ class Invgamma_prior(Prior_distribution):
     def ln_deriv(self,x):
         return -2*self.a+2*self.b*np.exp(-2*x)
     
-    def update(self,a=None,b=None,**kwargs):
+    def update_arguments(self,a=None,b=None,**kwargs):
+        """
+        Update the object with its arguments. The existing arguments are used if they are not given.
+        Parameters:
+            start: float or (H) array
+                The start of non-zero prior distribution value of the hyperparameter in log-space. 
+            end: float or (H) array
+                The end of non-zero prior distribution value of the hyperparameter in log-space. 
+            prob: float or (H) array
+                The non-zero prior distribution value.
+        Returns:
+            self: The updated object itself.
+        """
         if a is not None:
             if isinstance(a,(float,int)):
                 self.a=a
@@ -46,17 +58,21 @@ class Invgamma_prior(Prior_distribution):
     def mean_var(self,mean,var):
         mean,var=np.exp(mean),np.exp(2*np.sqrt(var))
         min_v=mean-np.sqrt(var)*2
-        return self.update(a=min_v,b=min_v)
+        return self.update_arguments(a=min_v,b=min_v)
     
     def min_max(self,min_v,max_v):
         b=np.exp(2*min_v)
-        return self.update(a=b,b=b)
+        return self.update_arguments(a=b,b=b)
     
     def copy(self):
         return self.__class__(a=self.a,b=self.b)
     
-    def __str__(self):
-        return 'Inverse-Gamma({},{})'.format(self.a,self.b)
-    
-    def __repr__(self):
-        return 'Invgamma_prior({},{})'.format(self.a,self.b)
+    def get_arguments(self):
+        " Get the arguments of the class itself. "
+        # Get the arguments given to the class in the initialization
+        arg_kwargs=dict(a=self.a,b=self.b)
+        # Get the constants made within the class
+        constant_kwargs=dict()
+        # Get the objects made within the class
+        object_kwargs=dict()
+        return arg_kwargs,constant_kwargs,object_kwargs

@@ -4,64 +4,66 @@ from copy import deepcopy
 from .hpfitter import HyperparameterFitter
 
 class HyperparameterFitterGPAtom(HyperparameterFitter):
-
-    def __init__(self,func,optimization_method=None,opt_kwargs={},**kwargs):
-        """ A wrapper for hyperparameter fitter object, so it can be used with ase-GPatom. 
-            The hyperparameter fitter object with local and global optimization methods for optimizing the hyperparameters on different objective functions. 
-            Parameters:
-                func : class
-                    A class with the objective function used to optimize the hyperparameters.
-                optimization_method : function
-                    A function with the optimization method used.
-                opt_kwargs : dict 
-                    A dictionary with the arguments for the optimization method.
+    def __init__(self,func,optimizer=None,bounds=None,use_update_pdis=False,get_prior_mean=False,use_stored_sols=False,**kwargs):
+        """ 
+        A wrapper for hyperparameter fitter object, so it can be used with ase-GPatom. 
+        Hyperparameter fitter object with an optimizer for optimizing the hyperparameters on different given objective functions. 
+        Parameters:
+            func : ObjectiveFunction class
+                A class with the objective function used to optimize the hyperparameters.
+            optimizer : Optimizer class
+                A class with the used optimization method.
+            bounds : HPBoundaries class
+                A class of the boundary conditions of the hyperparameters.
+                Most of the global optimizers are using boundary conditions. 
+                The bounds in this class will be used for the optimizer and func.
+                The bounds have to be with the hyperparameter names used in the objective function.
+            use_update_pdis : bool
+                Whether to update the prior distributions of the hyperparameters with the given boundary conditions.
+            get_prior_mean : bool
+                Whether to get the parameters of the prior mean in the solution.
+            use_stored_sols : bool
+                Whether to store the solutions.
         """
-        super().__init__(func=func,optimization_method=optimization_method,opt_kwargs=opt_kwargs)
-        
-    def fit(self,X,Y,model,hp=None,pdis=None,**kwargs):
-        """ Optimize the hyperparameters 
-            Parameters:
-                X : (N,D) array
-                    Training features with N data points and D dimensions.
-                Y : (N,1) array or (N,D+1) array
-                    Training targets with or without derivatives with N data points.
-                model : Model
-                    The Machine Learning Model with kernel and prior that are optimized.
-                hp : dict
-                    Use a set of hyperparameters to optimize from else the current set is used.
-                pdis : dict
-                    A dict of prior distributions for each hyperparameter type.
-        """
-        if hp is None:
-            hp=model.hp.copy()
-        model=self.copy_model(model,hp,X)
-        theta,parameters=self.hp_to_theta(hp)
-        pdis_new=self.convert_pdis_to_gpatom(pdis)
-        self.func.reset_solution()
-        sol=self.optimization_method(self.func,theta,parameters,model,X,Y,pdis=pdis_new,**self.opt_kwargs)
-        if 'hp' in sol.keys():
-            sol['hp']=self.convert_hp_to_gpatom(sol['hp'],model,X)
-        sol=self.get_full_hp(sol,model)
-        return sol
+        super().__init__(func,
+                         optimizer=optimizer,
+                         bounds=bounds,
+                         use_update_pdis=use_update_pdis,
+                         get_prior_mean=get_prior_mean,
+                         use_stored_sols=use_stored_sols,
+                         **kwargs)
     
-    def hp_to_theta(self,hp,**kwargs):
-        " Transform a dictionary of hyperparameters to a list of values and a list of parameter categories " 
-        hp_new=self.convert_hp_from_gpatom(hp)
-        return super().hp_to_theta(hp_new)
+    def get_hyperparams(self,hp,model,**kwargs):
+        " Get default hyperparameters if they are not given. "
+        if hp is None:
+            # Get the hyperparameters from the model
+            hp=model.hp.copy()
+        # Convert to hyperparameter used in the objective function
+        hp=self.convert_hp_from_gpatom(hp)
+        # Get the values and hyperparameter names
+        theta,parameters=self.hp_to_theta(hp)
+        return hp,theta,parameters
+    
+    def update_pdis(self,pdis,model,X,Y,parameters,**kwargs):
+        " Update the prior distributions of the hyperparameters with the boundary conditions. "
+        pdis=self.convert_dict_object_to_gpatom(pdis)
+        return super().update_pdis(pdis,model,X,Y,parameters,**kwargs)
     
     def get_full_hp(self,sol,model,**kwargs):
         " Get the full hyperparameter dictionary with hyperparameters that are optimized and are not. "
+        if 'hp' in sol.keys():
+            sol['hp']=self.convert_hp_to_gpatom(sol['hp'],model)
         sol['full hp']=model.hp.copy()
+        sol['full hp']=self.convert_hp_to_gpatom(sol['full hp'],model)
         sol['full hp'].update(sol['hp'])
         if 'prefactor' in sol['full hp'].keys():
             sol['full hp'].pop('prefactor')
         sol['full hp']['noise']=sol['full hp']['weight']*sol['full hp']['ratio']
         return sol
 
-    def copy_model(self,model,hp,X,**kwargs):
+    def copy_model(self,model,**kwargs):
         " Copy the model and check if the noisefactor is not used in the factorization method. "
         model=deepcopy(model)
-        model.set_hyperparams(hp)
         if 'noisefactor' in model.hp.keys():
             from .objectivefunctions.factorized_likelihood import FactorizedLogLikelihood
             if isinstance(self.func,FactorizedLogLikelihood):
@@ -81,31 +83,30 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
             hp_new['noise']=np.array(np.log(hp['ratio'])).reshape(-1)
         return hp_new
     
-    def convert_hp_to_gpatom(self,hp,model,X,**kwargs):
+    def convert_hp_to_gpatom(self,hp,model,**kwargs):
         " Convert the hyperparameters from here to the form of GP-atom. "
         parameters=list(hp.keys())
         hp_new={}
         if 'length' in parameters:
             hp_new['scale']=np.array(np.exp(hp['length'])).reshape(-1)
         if 'prefactor' in parameters:
-            hp_new['weight']=np.exp(hp['prefactor'][0])
+            hp_new['weight']=np.array(np.exp(hp['prefactor'])).reshape(-1)[0]
         if 'noise' in parameters:
-            hp_new['ratio']=np.exp(hp['noise'][0])
+            hp_new['ratio']=np.array(np.exp(hp['noise'])).reshape(-1)[0]
         return hp_new
-    
-    def convert_pdis_to_gpatom(self,pdis,**kwargs):
-        " Convert the prior distributions with GPatom hyperparameter names to the form here."
-        if pdis is None:
-            return pdis
-        pdis_new={}
-        if 'scale' in pdis:
-            pdis_new['length']=pdis['scale'].copy()
-        if 'weight' in pdis:
-            pdis_new['prefactor']=pdis['weight'].copy()
-        if 'ratio' in pdis:
-            pdis_new['noise']=pdis['ratio'].copy()
-        return pdis_new
-    
-    def __repr__(self):
-        return "HyperparameterFitterGPAtom(func={},optimization_method={},opt_kwargs={})".format(self.func.__class__.__name__,self.optimization_method.__name__,self.opt_kwargs)
-    
+
+    def convert_dict_object_to_gpatom(self,dict_obj,**kwargs):
+        " Convert a dictionary with objects with GPatom hyperparameter names to the form here."
+        if dict_obj is None:
+            return dict_obj
+        dict_obj_new={}
+        for key,value in dict_obj.items():
+            if key=='scale':
+                dict_obj_new['length']=dict_obj['scale'].copy()
+            if key=='weight':
+                dict_obj_new['prefactor']=dict_obj['weight'].copy()
+            if key=='ratio':
+                dict_obj_new['noise']=dict_obj['ratio'].copy()
+            else:
+                dict_obj_new[key]=value.copy()
+        return dict_obj_new

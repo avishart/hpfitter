@@ -10,17 +10,17 @@ class StrictBoundaries(EducatedBoundaries):
         Stricter boundary conditions are used for the length-scale hyperparameter.
         Machine precisions are used as boundary conditions for other hyperparameters not given in the dictionary.        
         Parameters:
-            bounds_dict: dict
+            bounds_dict : dict
                 A dictionary with boundary conditions as numpy (H,2) arrays with two columns for each type of hyperparameter.
-            scale: float
+            scale : float
                 Scale the boundary conditions.
-            log: bool
+            log : bool
                 Whether to use hyperparameters in log-scale or not.
-            use_derivatives: bool
+            use_derivatives : bool
                 Whether the derivatives of the target are used in the model. 
                 The boundary conditions of the length-scale hyperparameter(s) will change with the use_derivatives. 
                 The use_derivatives will be updated when update_bounds is called.
-            use_prior_mean: bool
+            use_prior_mean : bool
                 Whether to use the prior mean to calculate the boundary of the prefactor hyperparameter.
                 If use_prior_mean=False the minimum and maximum target differences are used as the boundary conditions. 
         """
@@ -66,10 +66,3 @@ class StrictBoundaries(EducatedBoundaries):
             return np.log(lengths)
         return lengths
     
-    def copy(self):
-        " Copy the object. "
-        return self.__class__(bounds_dict=self.bounds_dict,scale=self.scale,log=self.log,max_length=self.max_length,use_derivatives=self.use_derivatives,use_prior_mean=self.use_prior_mean)
-    
-    def __repr__(self):
-        return "StrictBoundaries(bounds_dict={},scale={},log={},max_length={},use_derivatives={},use_prior_mean={})".format(self.bounds_dict,self.scale,self.log,self.max_length,self.use_derivatives,self.use_prior_mean)
-        

@@ -23,7 +23,7 @@ class ObjectiveFuctionGPAtom(ObjectiveFuction):
         " Get the hyperparameters for the model and the kernel. "
         return model.hp.copy()
     
-    def update(self,model,hp,**kwargs):
+    def update_model(self,model,hp,**kwargs):
         " Update the hyperparameters of the machine learning model "
         hp_new=self.convert_hp_to_gpatom(hp,model)
         model.set_hyperparams(hp_new)

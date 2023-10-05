@@ -15,7 +15,10 @@ class Uniform_prior(Prior_distribution):
             prob: float or (H) array
                 The non-zero prior distribution value.
         """
-        self.update(start=start,end=end,prob=prob)
+        self.update_arguments(start=start,
+                              end=end,
+                              prob=prob,
+                              **kwargs)
     
     def ln_pdf(self,x):
         ln_0=-np.log(np.nan_to_num(np.inf))
@@ -26,7 +29,19 @@ class Uniform_prior(Prior_distribution):
     def ln_deriv(self,x):
         return 0.0*x
     
-    def update(self,start=None,end=None,prob=None,**kwargs):
+    def update_arguments(self,start=None,end=None,prob=None,**kwargs):
+        """
+        Update the object with its arguments. The existing arguments are used if they are not given.
+        Parameters:
+            start: float or (H) array
+                The start of non-zero prior distribution value of the hyperparameter in log-space. 
+            end: float or (H) array
+                The end of non-zero prior distribution value of the hyperparameter in log-space. 
+            prob: float or (H) array
+                The non-zero prior distribution value.
+        Returns:
+            self: The updated object itself.
+        """
         if start is not None:
             if isinstance(start,(float,int)):
                 self.start=start
@@ -50,16 +65,17 @@ class Uniform_prior(Prior_distribution):
             
     def mean_var(self,mean,var):
         std=np.sqrt(var)
-        return self.update(start=mean-4.0*std,end=mean+4.0*std,prob=1/(8.0*std))
+        return self.update_arguments(start=mean-4.0*std,end=mean+4.0*std,prob=1/(8.0*std))
     
     def min_max(self,min_v,max_v):
-        return self.update(start=min_v,end=max_v,prob=1.0/(max_v-min_v))
+        return self.update_arguments(start=min_v,end=max_v,prob=1.0/(max_v-min_v))
     
-    def copy(self):
-        return self.__class__(start=self.start,end=self.start,prob=self.prob)
-    
-    def __str__(self):
-        return 'Uniform({},{},{})'.format(self.start,self.end,self.prob)
-    
-    def __repr__(self):
-        return 'Uniform_prior({},{},{})'.format(self.start,self.end,self.prob)
+    def get_arguments(self):
+        " Get the arguments of the class itself. "
+        # Get the arguments given to the class in the initialization
+        arg_kwargs=dict(start=self.start,end=self.start,prob=self.prob)
+        # Get the constants made within the class
+        constant_kwargs=dict()
+        # Get the objects made within the class
+        object_kwargs=dict()
+        return arg_kwargs,constant_kwargs,object_kwargs
