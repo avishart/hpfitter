@@ -11,7 +11,7 @@ def calculate_list_values_parallelize(line,fun,*args,**kwargs):
     f_list=np.array([fun(theta,*args) for t,theta in enumerate(line) if rank==t%size])
     return np.array([broadcast(f_list,root=r) for r in range(size)]).T.reshape(-1)
 
-def get_solution_parallelized(sol,fun,parameters,model,X,Y,pdis,size,**kwargs):
+def get_solution_parallelized(sol,fun,parameters,model,X,Y,pdis,world,size,**kwargs):
     " Get all solutions from each function at each rank. "
     fun_sol=fun.get_solution({'fun':np.inf,'x':np.array([])},parameters,model,X,Y,pdis)
     sol=fun.get_solution(sol,parameters,model,X,Y,pdis)
