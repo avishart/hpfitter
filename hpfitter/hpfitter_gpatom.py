@@ -54,7 +54,6 @@ class HyperparameterFitterGPAtom(HyperparameterFitter):
         if 'hp' in sol.keys():
             sol['hp']=self.convert_hp_to_gpatom(sol['hp'],model)
         sol['full hp']=model.hp.copy()
-        sol['full hp']=self.convert_hp_to_gpatom(sol['full hp'],model)
         sol['full hp'].update(sol['hp'])
         if 'prefactor' in sol['full hp'].keys():
             sol['full hp'].pop('prefactor')

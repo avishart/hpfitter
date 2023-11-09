@@ -38,11 +38,44 @@ def get_fingerprints(atoms_list,make_fp=CartesianCoordFP):
         FPs.append(fp)    
     return FPs
 
+def check_minima(sol,FPs,f_tr,gp,pdis=None,dstep=1e-3):
+    " Check if thee solution is a minimum. "
+    from hpfitter.objectivefunctions.likelihood import LogLikelihood
+    from hpfitter.optimizers.optimizer import FunctionEvaluation
+    from hpfitter.hpfitter_gpatom import HyperparameterFitterGPAtom
+    # Construct optimizer
+    hpfitter=HyperparameterFitterGPAtom(func=LogLikelihood(),optimizer=FunctionEvaluation(jac=False),get_prior_mean=False)
+    # Get hyperparameter solution
+    hp0=sol['hp'].copy()
+    is_minima=True
+    # Iterate over all hyperparameters
+    for para,value in hp0.items():
+        # Get function value of minimum 
+        hp_test=hp0.copy()
+        sol0=hpfitter.fit(FPs,f_tr,gp,hp=hp_test,pdis=pdis)
+        # Get function value of a larger hyperparameter 
+        hp_test[para]=value+dstep
+        sol1=hpfitter.fit(FPs,f_tr,gp,hp=hp_test,pdis=pdis)
+        # Get function value of a larger hyperparameter 
+        hp_test[para]=value-dstep
+        sol2=hpfitter.fit(FPs,f_tr,gp,hp=hp_test,pdis=pdis)
+        # Check if it is a minimum
+        if sol0['fun']>sol1['fun'] or sol0['fun']>sol2['fun']:
+            is_minima=False
+    return is_minima
+
+def check_ratio_unchanged(gp,sol):
+    " Check if the ratio is unchanged. "
+    return gp.hp['ratio']==sol['full hp']['ratio']
+
+
 class TestHpfitterGPatom(unittest.TestCase):
     """ Test if the Hyperparameter Fitter can be used for the Gaussian Process from GP-atom. """
-
+    
     def test_line_factorization(self):
         " Line search with factorization method with optimization of scale, weight, and ratio. "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -74,15 +107,20 @@ class TestHpfitterGPatom(unittest.TestCase):
         hp=dict(ratio=1e-4,scale=0.5,weight=2.0)
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-        print('test_line_factorization',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.105)<1.0)
         self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp)
+        self.assertTrue(is_minima)
+    
 
     def test_prior_mean(self):
         " Line search with factorization method with optimization of scale, weight, and ratio, but where the prior mean parameters are extracted. "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -114,15 +152,19 @@ class TestHpfitterGPatom(unittest.TestCase):
         hp=dict(ratio=1e-4,scale=0.5,weight=2.0)
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-        print('test_prior_mean',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.105)<1.0)
         self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp)
+        self.assertTrue(is_minima)
 
     def test_pdis(self):
         " Line search with factorization method with optimization of scale, weight, and ratio, but where the prior distributions are used for the hyperparameters. "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -157,15 +199,19 @@ class TestHpfitterGPatom(unittest.TestCase):
         pdis=dict(scale=Normal_prior(mu=0.0,std=1.0),ratio=Normal_prior(mu=-6.0,std=2.0))
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp,pdis=pdis)
-        print('test_pdis',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-686.620)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.544)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-70.083)<1.0)
         self.assertTrue(abs(sol['hp']['ratio']-0.179)<1e-2)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp,pdis=pdis)
+        self.assertTrue(is_minima)
 
     def test_bounds(self):
         " Line search with factorization method with optimization of scale, weight, and ratio. Different boundary conditions of the hyperparameters are tested. "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -211,15 +257,19 @@ class TestHpfitterGPatom(unittest.TestCase):
                 hp=dict(ratio=1e-4,scale=0.5,weight=2.0)
                 # Optimize hyperparameters
                 sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-                print('test_bounds',index,sol)
                 # Test the solution deviation
                 self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
                 self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
                 self.assertTrue(abs(sol['hp']['weight']-58.105)<1.0)
                 self.assertTrue(abs(sol['hp']['ratio']-0.220)<1e-2)
+                # Check if it is a minimum
+                is_minima=check_minima(sol,FPs,f_tr,gp)
+                self.assertTrue(is_minima)
 
     def test_line_mle(self):
         " Line search with factorization method with optimization of scale and weight. "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -252,14 +302,21 @@ class TestHpfitterGPatom(unittest.TestCase):
         hp=dict(scale=0.5,weight=2.0)
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-        print('test_line_mle',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.111)<1.0)
+        # Check if the ratio is unchanged
+        ratio_unchanged=check_ratio_unchanged(gp,sol)
+        self.assertTrue(ratio_unchanged)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp)
+        self.assertTrue(is_minima)
 
     def test_line_mle_finegrid(self):
         " Line search with a parallelizable method with factorization method with optimization of scale and weight (this is not parallelized). "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -292,14 +349,21 @@ class TestHpfitterGPatom(unittest.TestCase):
         hp=dict(scale=0.5,weight=2.0)
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-        print('test_line_mle_finegrid',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.508)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.061)<1.0)
+        # Check if the ratio is unchanged
+        ratio_unchanged=check_ratio_unchanged(gp,sol)
+        self.assertTrue(ratio_unchanged)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp)
+        self.assertTrue(is_minima)
 
     def test_line_mle_parallel(self):
         " Line search with a parallelizable method with factorization method with optimization of scale and weight (this is parallelized). "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -332,14 +396,21 @@ class TestHpfitterGPatom(unittest.TestCase):
         hp=dict(scale=0.5,weight=2.0)
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-        print('test_line_mle_parallel',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.062)<1.0)
+        # Check if the ratio is unchanged
+        ratio_unchanged=check_ratio_unchanged(gp,sol)
+        self.assertTrue(ratio_unchanged)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp)
+        self.assertTrue(is_minima)
 
     def test_line_mle_fast(self):
         " Fastest line search with the parallelized method with factorization method with optimization of scale and weight (this is parallelized). "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -372,14 +443,21 @@ class TestHpfitterGPatom(unittest.TestCase):
         hp=dict(scale=0.5,weight=2.0)
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-        print('test_line_mle_fast',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.062)<1.0)
+        # Check if the ratio is unchanged
+        ratio_unchanged=check_ratio_unchanged(gp,sol)
+        self.assertTrue(ratio_unchanged)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp)
+        self.assertTrue(is_minima)
 
     def test_local_mle(self):
         " Local optimization of scale and weight. "
+        # Set a random state 
+        np.random.seed(1)
         # Import from gpatom
         from gpatom.gpfp.gp import GaussianProcess
         # Import the hpfitter
@@ -409,11 +487,16 @@ class TestHpfitterGPatom(unittest.TestCase):
         hp=dict(scale=0.5,weight=2.0)
         # Optimize hyperparameters
         sol=hpfitter.fit(FPs,f_tr,gp,hp=hp)
-        print('test_local_mle',sol)
         # Test the solution deviation
         self.assertTrue(abs(sol['fun']-681.487)<1e-2) 
         self.assertTrue(abs(sol['hp']['scale']-0.509)<1e-2)
         self.assertTrue(abs(sol['hp']['weight']-58.064)<1.0)
+        # Check if the ratio is unchanged
+        ratio_unchanged=check_ratio_unchanged(gp,sol)
+        self.assertTrue(ratio_unchanged)
+        # Check if it is a minimum
+        is_minima=check_minima(sol,FPs,f_tr,gp)
+        self.assertTrue(is_minima)
 
 
 if __name__ == '__main__':
