@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 # Setting up
 setup( 
     name="hpfitter", 
-    version="4.0.3",
+    version="5.0.0",
     author="Andreas Vishart",
     author_email="<alyvi@dtu.dk>",
     description="Hyperparameter fitter for the Gaussian Process from GP-atom",
